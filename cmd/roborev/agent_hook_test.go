@@ -248,7 +248,8 @@ func TestGrokAgentHookAppendsFixGuidelines(t *testing.T) {
 	var stdout bytes.Buffer
 	opts := agenthook.DefaultOptions()
 	opts.FixGuidelines = "Verify before editing."
-	err := runGrokAgentHook(
+	err := runLocalAgentHook(
+		agenthook.AgentGrok,
 		opts,
 		strings.NewReader(`{"session_id":"s1","hook_event_name":"Stop"}`),
 		&stdout,

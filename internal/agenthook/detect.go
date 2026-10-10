@@ -19,7 +19,8 @@ func Installed(agent kitagenthook.Agent, path string) (bool, error) {
 }
 
 func InstalledForAgent(path, agent string) (bool, error) {
-	if strings.EqualFold(strings.TrimSpace(agent), string(AgentGrok)) {
+	normalized := strings.ToLower(strings.TrimSpace(agent))
+	if _, ok := localProfile(normalized); ok {
 		body, err := os.ReadFile(path)
 		if os.IsNotExist(err) {
 			return false, nil
@@ -31,7 +32,7 @@ func InstalledForAgent(path, agent string) (bool, error) {
 		if err := json.Unmarshal(body, &root); err != nil {
 			return false, err
 		}
-		return containsGrokHook(root), nil
+		return containsOwnedHook(root, kitagenthook.Agent(normalized)), nil
 	}
 	profile, err := kitagenthook.ParseAgent(agent)
 	if err != nil {
@@ -40,16 +41,22 @@ func InstalledForAgent(path, agent string) (bool, error) {
 	return Installed(profile, path)
 }
 
-func containsGrokHook(value any) bool {
+// containsOwnedHook scans a parsed hook configuration for a roborev-owned
+// hook command selecting agent, regardless of the nesting level. Local
+// profiles keep hooks at harness-specific depths (ZCode nests event arrays
+// under hooks.events), so a recursive search avoids duplicating each shape.
+func containsOwnedHook(value any, agent kitagenthook.Agent) bool {
 	switch typed := value.(type) {
 	case []any:
-		return slices.ContainsFunc(typed, containsGrokHook)
+		return slices.ContainsFunc(typed, func(child any) bool {
+			return containsOwnedHook(child, agent)
+		})
 	case map[string]any:
-		if command, ok := typed["command"].(string); ok && isGrokHookCommand(command) {
+		if command, ok := typed["command"].(string); ok && isOwnedHookCommand(command, agent) {
 			return true
 		}
 		for _, child := range typed {
-			if containsGrokHook(child) {
+			if containsOwnedHook(child, agent) {
 				return true
 			}
 		}
@@ -57,7 +64,7 @@ func containsGrokHook(value any) bool {
 	return false
 }
 
-func isGrokHookCommand(command string) bool {
-	agent, err := commandAgent(command)
-	return err == nil && agent == AgentGrok
+func isOwnedHookCommand(command string, agent kitagenthook.Agent) bool {
+	selected, err := commandAgent(command)
+	return err == nil && selected == agent
 }

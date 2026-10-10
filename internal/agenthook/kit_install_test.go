@@ -116,6 +116,7 @@ func TestRunInstallInstallsAndUpdatesBundledSkillsForSupportedProfiles(t *testin
 		{agent: "gemini", configName: "settings.json"},
 		{agent: "hermes", configName: "config.yaml"},
 		{agent: "qwen", configName: "settings.json"},
+		{agent: "zcode", configName: filepath.Join("cli", "config.json")},
 	}
 
 	for _, tt := range tests {

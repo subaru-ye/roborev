@@ -51,8 +51,21 @@ func TestInstalledForAgentDetectsGrokHook(t *testing.T) {
 	}
 }
 
-func TestInstalledIgnoresUnrelatedHooks(t *testing.T) {
-	dir := t.TempDir()
+func TestInstalledForAgentDetectsZcodeHookUnderEvents(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.json")
+	content := `{"hooks":{"enabled":true,"events":{"Stop":[{"hooks":[{"type":"command","command":"roborev agent-hook run --agent zcode --source=roborev-agent-hook"}]}]}}}`
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+
+	ok, err := InstalledForAgent(path, "zcode")
+	require.NoError(t, err)
+	assert.True(t, ok)
+
+	grok, err := InstalledForAgent(path, "grok")
+	require.NoError(t, err)
+	assert.False(t, grok)
+}
+
+func TestInstalledIgnoresUnrelatedHooks(t *testing.T) {	dir := t.TempDir()
 	path := filepath.Join(dir, "settings.json")
 	content := `{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"echo hi"}]}]}}`
 	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))

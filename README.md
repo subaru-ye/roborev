@@ -107,7 +107,8 @@ changes and commits. The new commit gets reviewed automatically,
 closing the loop.
 
 `roborev agent-hook install` auto-detects installed Claude Code, Codex, Copilot
-CLI, Cursor, Factory Droid, Gemini CLI, Hermes, Qwen, and Grok Build harnesses
+CLI, Cursor, Factory Droid, Gemini CLI, Hermes, Qwen, Grok Build, and ZCode
+harnesses
 and adds optional hooks after configured turn, commit, or failed-review
 thresholds are met. Reminders name exact review IDs, invoke the bundled
 `roborev-fix` skill, and never run `roborev fix --open`. Hook installation

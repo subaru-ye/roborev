@@ -129,10 +129,10 @@ roborev agent-hook install
 
 An agent is detected when its executable is on `PATH` or its config directory
 already exists. The executable candidates are `claude`, `codex`, `copilot`,
-`agent` (Cursor), `droid`, `gemini`, `hermes`, `qwen`, and `grok`.
+`agent` (Cursor), `droid`, `gemini`, `hermes`, `qwen`, `grok`, and `zcode`.
 
-Select one profile or deliberately install all nine integrations (the eight kit
-profiles plus Grok Build):
+Select one profile or deliberately install all ten integrations (the eight kit
+profiles plus Grok Build and ZCode):
 
 ```bash
 roborev agent-hook install --agent qwen
@@ -157,6 +157,12 @@ daemon endpoint. See [MCP setup](integrations/mcp.md).
 
 Factory Droid remains user-scoped. Roborev rejects project `.factory/hooks.json`
 paths because they are executable repository-local configuration.
+
+ZCode registers hooks in `~/.zcode/cli/config.json` under `hooks.events` and
+sets `hooks.enabled` to `true` because ZCode configuration-file hooks stay
+disabled until that flag is set. ZCode follows the Claude Code hook input and
+output protocol, so a `Stop` hook blocks the stop with the reminder text as the
+reason.
 
 Agent Hook uses the same stable binary resolver as `roborev init`. Pin a shim or
 binary explicitly when needed:

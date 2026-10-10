@@ -63,6 +63,7 @@ func TestSelectProfilesAllUsesKitOrderThenGrok(t *testing.T) {
 		kitagenthook.AgentHermes,
 		kitagenthook.AgentQwen,
 		AgentGrok,
+		AgentZcode,
 	}, agents)
 }
 
@@ -117,4 +118,19 @@ func TestSelectProfilesAutoReturnsActionableErrorWhenNothingDetected(t *testing.
 	require.Error(t, err)
 	require.ErrorContains(t, err, "--agent")
 	require.ErrorContains(t, err, "--agent all")
+}
+
+func TestSelectProfilesAutoDetectsZcodeConfigDirectory(t *testing.T) {
+	root := t.TempDir()
+	home := filepath.Join(root, "home")
+	require.NoError(t, os.MkdirAll(home, 0o755))
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("PATH", filepath.Join(root, "empty-bin"))
+	require.NoError(t, os.MkdirAll(filepath.Join(home, ".zcode", "cli"), 0o755))
+
+	agents, err := SelectProfiles("")
+
+	require.NoError(t, err)
+	assert.Equal(t, []kitagenthook.Agent{AgentZcode}, agents)
 }

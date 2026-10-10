@@ -90,8 +90,8 @@ func agentHookRunCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if rawAgent == string(agenthook.AgentGrok) {
-				return runGrokAgentHook(resolved, cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
+			if selected, ok := agenthook.LocalProfile(rawAgent); ok {
+				return runLocalAgentHook(selected, resolved, cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
 			}
 			profile, err := kitagenthook.ParseAgent(rawAgent)
 			if err != nil {
@@ -107,17 +107,24 @@ func agentHookRunCmd() *cobra.Command {
 	return cmd
 }
 
-func runGrokAgentHook(opts agenthook.Options, stdin io.Reader, stdout, stderr io.Writer) error {
+// runLocalAgentHook runs the hook for an agent profile this repository
+// implements without a kit profile. These harnesses follow the Claude Code
+// stdin and JSON output protocol, so one direct runner covers them.
+func runLocalAgentHook(agent kitagenthook.Agent, opts agenthook.Options, stdin io.Reader, stdout, stderr io.Writer) error {
+	displayName := "agent"
+	if profile, ok := agenthook.LocalProfileDisplayName(agent); ok {
+		displayName = profile
+	}
 	input, err := agenthook.DecodeInput(stdin)
 	if err != nil {
-		return fmt.Errorf("decode Grok Build input: %w", err)
+		return fmt.Errorf("decode %s input: %w", displayName, err)
 	}
 	if input.SessionID == "" {
-		return fmt.Errorf("decode Grok Build input: missing session_id")
+		return fmt.Errorf("decode %s input: missing session_id", displayName)
 	}
 	resp, err := postAgentHook(context.Background(), opts.RoborevServerAddr, agenthook.Request{
 		MCP:                   opts.MCP,
-		Agent:                 agenthook.AgentGrok,
+		Agent:                 agent,
 		Event:                 input,
 		Threshold:             opts.TurnThreshold,
 		CommitThreshold:       opts.CommitThreshold,
@@ -125,7 +132,7 @@ func runGrokAgentHook(opts agenthook.Options, stdin io.Reader, stdout, stderr io
 		Instruction:           opts.Instruction,
 	})
 	if err != nil {
-		fmt.Fprintf(stderr, "roborev Grok Build: %v\n", err)
+		fmt.Fprintf(stderr, "roborev %s: %v\n", displayName, err)
 		return json.MarshalWrite(stdout, map[string]any{})
 	}
 	if resp.Triggered {
@@ -133,7 +140,7 @@ func runGrokAgentHook(opts agenthook.Options, stdin io.Reader, stdout, stderr io
 			return json.MarshalWrite(stdout, agenthook.BuildOutput(input, resp))
 		}
 		resp.Reason = prependAgentHookFixSkillWarning(
-			agenthook.AgentGrok, opts.MCP,
+			agent, opts.MCP,
 			agenthook.StopReasonWithFixGuidelines(resp.Reason, opts.FixGuidelines),
 		)
 		return json.MarshalWrite(stdout, agenthook.BuildOutput(input, resp))
